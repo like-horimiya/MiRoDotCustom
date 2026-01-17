@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiRoDot Legacy to v2 Converter</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            resize: vertical;
+            box-sizing: border-box;
+            background: #f9f9f9;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-area {
+            height: 100px;
+        }
+
+        .output-area {
+            height: 120px;
+            background: #f0f0f0;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .info-box {
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .preview {
+            display: grid;
+            grid-template-columns: repeat(16, 20px);
+            gap: 1px;
+            margin: 15px auto;
+            width: fit-content;
+            background: #ddd;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .pixel {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .success {
+            color: #27ae60;
+            background: #d4edda;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Legacy to v2 Converter</h1>
+        <div class="subtitle">!draw / !mirodot → !miv2 形式に変換</div>
+
+        <div class="section">
+            <div class="section-title">📥 入力（旧形式コード）</div>
+            <textarea id="input" class="input-area" placeholder="!draw または !mirodot コードを貼り付けてください&#10;例1: !draw 104b906bb04b1c1bb02c...&#10;例2: !mirodot G000000ffffff888888..."></textarea>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-primary" onclick="convert()">🔄 変換</button>
+            <button class="btn-secondary" onclick="clearAll()">🗑️ クリア</button>
+        </div>
+
+        <div id="result-section" style="display: none;">
+            <div class="section">
+                <div class="section-title">📤 出力（v2形式）</div>
+                <textarea id="output" class="output-area" readonly></textarea>
+            </div>
+
+            <div class="stats" id="stats"></div>
+
+            <div class="section">
+                <div class="section-title">🎨 プレビュー</div>
+                <div id="preview" class="preview"></div>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="info-box">
+            <strong>💡 対応フォーマット:</strong><br>
+            • <strong>!draw</strong> - 旧圧縮形式（16進数RLE）→ パレットIDを保持して変換 ✓<br>
+            • <strong>!mirodot G...</strong> - 旧G形式（カスタムパレット）→ カスタムカラーをバイナリで保持 ✓<br>
+            <br>
+            変換後は <strong>!miv2 r0...</strong> ～ <strong>!miv2 rf...</strong> 形式になります<br>
+            （r/b = 圧縮方式、0-f = パレットID、カスタムカラーはバイナリ埋め込み）
+        </div>
+    </div>
+
+    <script>
+        // パレット定義
+        const LEGACY_PALETTES = {
+            "0": ['transparent','#ffffff','#888888','#222222','#ff4b2b','#33cc33','#0077ff','#ffee00','#ff99cc','#66ffff','#ccff33','#8b4513','#b22222','#000080','#ff8c00','#000000'],
+            "1": ['transparent','#fff5eb','#fde5d2','#f9d4b8','#f3b08c','#e3906c','#c07254','#91553d','#ff66a3','#ff0066','#9900ff','#442211','#55ccff','#ffffff','#222222','#000000'],
+            "2": ['transparent','#ffffff','#f8f8f8','#e0e0e0','#cccccc','#b0b0b0','#999999','#808080','#666666','#505050','#404040','#303030','#202020','#101010','#050505','#000000'],
+            "3": ['transparent','#ff6b6b','#fa5252','#f03e3e','#e03131','#c92a2a','#ffa94d','#fd7e14','#f76707','#e8590c','#d9480f','#ffffff','#ffec99','#fab005','#222222','#000000'],
+            "4": ['transparent','#339af0','#228be6','#1c7ed6','#1971c2','#1864ab','#38d9a9','#20c997','#12b886','#0ca678','#099268','#ffffff','#a5d8ff','#111111','#222222','#000000'],
+            "5": ['transparent','#f8f8f8','#bcbcbc','#7c7c7c','#f8d878','#f8a000','#f83800','#d80000','#008800','#00a800','#0058f8','#3cbcfc','#0000bc','#6844fc','#ffffff','#000000'],
+            "6": ['transparent','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#ffc6ff','#9bf6ff','#a0c4ff','#bdb2ff','#fffffc','#ffffff','#333333','#aaaaaa','#222222','#000000'],
+            "7": ['transparent','#ff0000','#cc0000','#990000','#660000','#330000','#ff8888','#ffcccc','#ffffff','#eeeeee','#cccccc','#999999','#666666','#333333','#111111','#000000'],
+            "8": ['transparent','#00ff00','#ff00ff','#00ffff','#ffff00','#ff0000','#ffffff','#003300','#330033','#003333','#333300','#330000','#444444','#888888','#222222','#000000'],
+            "9": ['transparent','#2d5a27','#1e3f1a','#4a7c44','#6b8e23','#8fbc8f','#556b2f','#a2ad91','#deb887','#8b4513','#5d4037','#ffffff','#cccccc','#444444','#222222','#000000'],
+            "a": ['transparent','#0077be','#005b96','#03396c','#011f4b','#6497b1','#b3cde0','#009688','#4db6ac','#80cbc4','#ffffff','#dddddd','#aaaaaa','#333333','#111111','#000000'],
+            "b": ['transparent','#ff4500','#ff6347','#ff8c00','#ffa500','#ffd700','#2f4f4f','#708090','#191970','#000080','#483d8b','#ffffff','#aaaaaa','#333333','#111111','#000000'],
+            "c": ['transparent','#9bbc0f','#8bab0f','#306230','#0f380f','#ffffff','#dddddd','#bbbbbb','#999999','#777777','#555555','#333333','#111111','#050505','#222222','#000000'],
+            "d": ['transparent','#a63d33','#e0815e','#6b4a3e','#f2e8d5','#bfbd97','#8c9e5e','#5e6146','#3e4a3d','#2b3a2d','#1a201a','#ffffff','#cccccc','#888888','#222222','#000000'],
+            "e": ['transparent','#5d001e','#9a1750','#ee4c7c','#ff66aa','#cc3366','#990033','#ffcccc','#ff99cc','#ffffff','#eeeeee','#cccccc','#999999','#444444','#222222','#000000'],
+            "f": ['transparent','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ffffff','#808080','#800000','#008000','#000080','#808000','#800080','#444444','#000000']
+        };
+
+        function decodeLegacyDraw(code) {
+            const palKey = code[0].toLowerCase();
+            const palette = LEGACY_PALETTES[palKey] || LEGACY_PALETTES["0"];
+            const pixelData = code.substring(1);
+            
+            let pixels = [];
+            for (let i = 0; i < pixelData.length; i += 2) {
+                const colorIdx = parseInt(pixelData[i], 16);
+                const repeat = parseInt(pixelData[i + 1], 16);
+                for (let r = 0; r < repeat; r++) {
+                    if (pixels.length < 256) pixels.push(colorIdx);
+                }
+            }
+            
+            return { pixels, palette };
+        }
+
+        function decodeLegacyMirodot(code) {
+            const colorPart = code.substring(1, 97);
+            const pixelData = code.substring(97);
+            
+            let palette = [];
+            for (let i = 0; i < 16; i++) {
+                const hex = colorPart.substring(i * 6, i * 6 + 6);
+                palette.push(i === 0 ? 'transparent' : `#${hex}`);
+            }
+            
+            let pixels = [];
+            for (let i = 0; i < 256; i++) {
+                pixels.push(parseInt(pixelData[i], 16));
+            }
+            
+            return { pixels, palette };
+        }
+
+        function encodeToMiv2(pixels, paletteId, customPalette = null) {
+            // RLE圧縮
+            let rleBody = [];
+            let count = 1;
+            for (let i = 0; i < pixels.length; i++) {
+                if (pixels[i] === pixels[i + 1] && count < 255) {
+                    count++;
+                } else {
+                    rleBody.push(pixels[i], count);
+                    count = 1;
+                }
+            }
+
+            // Base64ニブル圧縮
+            let base64Body = [];
+            for (let i = 0; i < pixels.length; i += 2) {
+                const pixel1 = pixels[i];
+                const pixel2 = (i + 1 < pixels.length) ? pixels[i + 1] : 0;
+                base64Body.push((pixel1 << 4) | pixel2);
+            }
+
+            // 小さい方を選択
+            let finalBody, identifier;
+            if (rleBody.length <= base64Body.length) {
+                finalBody = rleBody;
+                identifier = 'r';
+            } else {
+                finalBody = base64Body;
+                identifier = 'b';
+            }
+
+            // カスタムパレットをバイナリに変換
+            let binaryData = [];
+            let customColorCount = 0;
+            
+            if (customPalette) {
+                // G形式の場合、カスタムパレットを基本パレットと比較
+                const basePalette = LEGACY_PALETTES["0"];
+                const customColors = [];
+                
+                for (let i = 0; i < 16; i++) {
+                    if (customPalette[i] !== basePalette[i] && customPalette[i] !== 'transparent') {
+                        const hex = customPalette[i].replace('#', '');
+                        const r = parseInt(hex.substring(0, 2), 16);
+                        const g = parseInt(hex.substring(2, 4), 16);
+                        const b = parseInt(hex.substring(4, 6), 16);
+                        customColors.push({ index: i, r, g, b });
+                    }
+                }
+                
+                customColorCount = customColors.length;
+                
+                // カスタムカラー数
+                binaryData.push(customColorCount);
+                
+                // カスタムカラーデータ
+                customColors.forEach(c => {
+                    binaryData.push(c.index, c.r, c.g, c.b);
+                });
+            } else {
+                // カスタムなし
+                binaryData.push(0);
+            }
+            
+            // ピクセルデータを追加
+            binaryData = binaryData.concat(finalBody);
+
+            const base64String = btoa(String.fromCharCode(...binaryData));
+            const palIdHex = paletteId.toString(16);
+            
+            return {
+                code: "!miv2 " + identifier + palIdHex + base64String,
+                identifier: identifier,
+                rleSize: rleBody.length,
+                base64Size: base64Body.length,
+                chosenSize: finalBody.length,
+                paletteId: paletteId,
+                customColorCount: customColorCount
+            };
+        }
+
+        function convert() {
+            const input = document.getElementById('input').value.trim();
+            const output = document.getElementById('output');
+            const message = document.getElementById('message');
+            const resultSection = document.getElementById('result-section');
+            const statsDiv = document.getElementById('stats');
+            const previewDiv = document.getElementById('preview');
+
+            try {
+                let code = input.replace(/^!(draw|mirodot)\s+/, '').trim();
+                let decoded;
+                let inputFormat;
+                let paletteId = 0; // デフォルトは「基本」
+
+                // フォーマット判定
+                if (input.startsWith('!draw')) {
+                    decoded = decodeLegacyDraw(code);
+                    inputFormat = '!draw (16進RLE)';
+                    // drawのパレットIDを取得
+                    const palKey = code[0].toLowerCase();
+                    const palIndex = {'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'a':10,'b':11,'c':12,'d':13,'e':14,'f':15};
+                    paletteId = palIndex[palKey] || 0;
+                } else if (input.startsWith('!mirodot') && code[0].toUpperCase() === 'G') {
+                    decoded = decodeLegacyMirodot(code);
+                    inputFormat = '!mirodot (G形式 - カスタムパレット)';
+                    paletteId = 0; // 基本パレットをベースに
+                    
+                    message.innerHTML = `<div style="background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                    ✓ G形式のカスタムパレットをバイナリ形式で保持します。<br>
+                    カスタムカラーは基本パレットとの差分のみ埋め込まれます。</div>`;
+                } else {
+                    throw new Error('未対応の形式です。!draw または !mirodot コードを入力してください。');
+                }
+
+                if (decoded.pixels.length !== 256) {
+                    throw new Error(`ピクセル数が不正です: ${decoded.pixels.length} / 256`);
+                }
+
+                // v2形式にエンコード（G形式の場合はカスタムパレットも渡す）
+                const customPalette = input.startsWith('!mirodot') ? decoded.palette : null;
+                const result = encodeToMiv2(decoded.pixels, paletteId, customPalette);
+
+                // 出力
+                output.value = result.code;
+                resultSection.style.display = 'block';
+
+                // 統計情報
+                const oldSize = input.length;
+                const newSize = result.code.length;
+                const reduction = oldSize - newSize;
+                const reductionPercent = ((reduction / oldSize) * 100).toFixed(1);
+
+                statsDiv.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-label">入力形式</div>
+                        <div class="stat-value" style="font-size: 14px;">${inputFormat}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">旧サイズ</div>
+                        <div class="stat-value">${oldSize}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">新サイズ</div>
+                        <div class="stat-value">${newSize}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">削減</div>
+                        <div class="stat-value" style="color: ${reduction > 0 ? '#27ae60' : '#e74c3c'}">
+                            ${reduction > 0 ? '-' : '+'}${Math.abs(reduction)}
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">圧縮方式</div>
+                        <div class="stat-value" style="font-size: 16px;">
+                            ${result.identifier === 'r' ? 'RLE' : 'Base64'}
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">カスタム色</div>
+                        <div class="stat-value" style="font-size: 18px;">
+                            ${result.customColorCount || 0}色
+                        </div>
+                    </div>
+                `;
+
+                // プレビュー
+                previewDiv.innerHTML = decoded.pixels.map(idx => 
+                    `<div class="pixel" style="background: ${decoded.palette[idx]}"></div>`
+                ).join('');
+
+                message.innerHTML = `<div class="success">✓ 変換成功！クリップボードにコピーされました</div>`;
+
+                // クリップボードにコピー
+                navigator.clipboard.writeText(result.code);
+
+            } catch (e) {
+                message.innerHTML = `<div class="error">✗ エラー: ${e.message}</div>`;
+                resultSection.style.display = 'none';
+            }
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            document.getElementById('output').value = '';
+            document.getElementById('message').innerHTML = '';
+            document.getElementById('result-section').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -474,9 +474,31 @@ function clearGrid() {
     }
 }
 
-// コード生成（v2形式・ヘッダーレス・ハイブリッド圧縮）
+// コード生成（v2形式・パレットID対応・バイナリカスタムカラー対応・ハイブリッド圧縮）
 function generateCode() {
     const pixels = cells.map(c => parseInt(c.dataset.idx));
+    const palKeys = Object.keys(PALETTES);
+    const setId = palKeys.indexOf(currentPalKey);
+    const palIdHex = setId.toString(16); // 0-f
+
+    // カスタムカラー検出
+    const currentPalette = PALETTES[currentPalKey];
+    const defaultPalette = DEFAULT_PALETTES[currentPalKey];
+    const customColors = [];
+    
+    for (let i = 0; i < 16; i++) {
+        if (currentPalette[i] !== defaultPalette[i]) {
+            // 色が変更されている
+            const color = currentPalette[i];
+            if (color !== 'transparent') {
+                const hex = color.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                customColors.push({ index: i, r, g, b });
+            }
+        }
+    }
 
     // === ハイブリッド圧縮: RLE vs Base64 ===
     
@@ -511,16 +533,35 @@ function generateCode() {
         identifier = 'b'; // Base64ニブル
     }
 
-    // ヘッダーレス: ボディのみをBase64エンコード
-    const base64String = btoa(String.fromCharCode(...finalBody));
-    const finalCode = "!miv2 " + identifier + base64String;
+    // カスタムカラーをバイナリの先頭に追加
+    let binaryData = [];
+    
+    // カスタムカラー数（1バイト）
+    binaryData.push(customColors.length);
+    
+    // カスタムカラーデータ（各4バイト: 番号, R, G, B）
+    customColors.forEach(c => {
+        binaryData.push(c.index, c.r, c.g, c.b);
+    });
+    
+    // ピクセルデータを追加
+    binaryData = binaryData.concat(finalBody);
+    
+    // Base64エンコード
+    const base64String = btoa(String.fromCharCode(...binaryData));
+    
+    // 最終コード: !miv2 [r/b][パレットID][Base64]
+    const finalCode = "!miv2 " + identifier + palIdHex + base64String;
 
     document.getElementById('output').value = finalCode;
     
     // クリップボードにコピー
     if (navigator.clipboard) {
         navigator.clipboard.writeText(finalCode).then(() => {
-            alert("クリップボードにコピーしました");
+            const msg = customColors.length > 0 
+                ? `クリップボードにコピーしました\n（カスタムカラー ${customColors.length}色を含む）`
+                : "クリップボードにコピーしました";
+            alert(msg);
         });
     }
 }

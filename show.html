@@ -139,49 +139,76 @@ const channel = params.get('channel');
 if (channel) ComfyJS.Init(channel);
 
 /**
- * v2形式デコーダー（ヘッダーレス r/b形式）
- * フォーマット: !miv2 r[Base64] または !miv2 b[Base64]
+ * v2形式デコーダー（パレットID・バイナリカスタムカラー対応）
+ * フォーマット: !miv2 r0[Base64]
+ * Base64内容: [カスタムカラー数][色データ...][RLE/ニブルデータ]
  */
 function renderV2Code(code) {
     try {
         const base64 = code.replace("!miv2 ", "").trim();
         
-        // 識別子チェック
-        const identifier = base64[0];
-        const bodyBase64 = base64.substring(1);
+        // 識別子とパレットIDを取得
+        const identifier = base64[0];      // r or b
+        const paletteIdHex = base64[1];    // 0-f
+        const bodyBase64 = base64.substring(2);
         
         if (identifier !== 'r' && identifier !== 'b') {
             console.error('不正な識別子:', identifier);
             return null;
         }
         
+        // パレットID取得
+        const setId = parseInt(paletteIdHex, 16);
+        if (isNaN(setId) || setId < 0 || setId > 15) {
+            console.error('不正なパレットID:', paletteIdHex);
+            return null;
+        }
+        
         // Base64デコード
         const body = Array.from(atob(bodyBase64)).map(c => c.charCodeAt(0));
         
-        // ヘッダーを固定値で補完
-        const setId = 0; // デフォルト「基本」パレット
-        const paletteType = 0; // 標準参照
-        const type = (identifier === 'r') ? 2 : 3; // r=RLE, b=Base64ニブル
-        
-        // 標準パレットを使用
+        // パレット取得
         const palKeys = Object.keys(PALETTES);
         const key = palKeys[setId] || "基本";
         const palette = [...PALETTES[key]];
+        
+        let p = 0; // 読み取り位置
+        
+        // カスタムカラー数を取得
+        const customColorCount = body[p++];
+        
+        // カスタムカラーを読み込んで適用
+        for (let i = 0; i < customColorCount; i++) {
+            const colorIndex = body[p++];
+            const r = body[p++];
+            const g = body[p++];
+            const b = body[p++];
+            
+            if (colorIndex >= 0 && colorIndex < 16) {
+                palette[colorIndex] = `rgb(${r},${g},${b})`;
+            }
+        }
+        
+        // 残りはピクセルデータ
+        const pixelData = body.slice(p);
+        
+        // 圧縮方式判定
+        const type = (identifier === 'r') ? 2 : 3;
         
         // ピクセルデコード
         let pixels = [];
         
         if (type === 2) {
             // RLE圧縮デコード
-            for (let i = 0; i < body.length; i += 2) {
-                const color = body[i];
-                const count = (i + 1 < body.length) ? body[i + 1] : 1;
+            for (let i = 0; i < pixelData.length; i += 2) {
+                const color = pixelData[i];
+                const count = (i + 1 < pixelData.length) ? pixelData[i + 1] : 1;
                 for (let j = 0; j < count; j++) pixels.push(color);
             }
         } else if (type === 3) {
             // Base64ニブル形式
-            for (let i = 0; i < body.length; i++) {
-                const byte = body[i];
+            for (let i = 0; i < pixelData.length; i++) {
+                const byte = pixelData[i];
                 const pixel1 = (byte >> 4) & 0xF;
                 const pixel2 = byte & 0xF;
                 pixels.push(pixel1);

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>v2 Decoder Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff; }
+        .pixel-grid { display: grid; grid-template-columns: repeat(16, 20px); grid-template-rows: repeat(16, 20px); gap: 1px; margin: 20px 0; }
+        .px { width: 20px; height: 20px; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; background: #000; color: #0f0; border: 1px solid #333; padding: 10px; font-family: monospace; }
+        button { padding: 10px 20px; background: #9146ff; color: white; border: none; cursor: pointer; font-size: 14px; }
+        pre { background: #000; padding: 10px; border: 1px solid #333; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>MiRoDot v2 Decoder Test (バイナリカスタムカラー)</h1>
+    
+    <textarea id="input" placeholder="!miv2コードを貼り付けてください">!miv2 r0AAFQBAgAPAQIAEAEBABABAQAPAQIADwEBAFY=</textarea>
+    <button onclick="testDecode()">デコードテスト</button>
+    
+    <div id="result"></div>
+    <div id="grid" class="pixel-grid"></div>
+
+    <script>
+        // 標準パレット定義
+        const PALETTES = {
+            "基本": ['transparent','#ffffff','#888888','#222222','#ff4b2b','#33cc33','#0077ff','#ffee00','#ff99cc','#66ffff','#ccff33','#8b4513','#b22222','#000080','#ff8c00','#000000'],
+            "人物": ['transparent','#fff5eb','#fde5d2','#f9d4b8','#f3b08c','#e3906c','#c07254','#91553d','#ff66a3','#ff0066','#9900ff','#442211','#55ccff','#ffffff','#222222','#000000'],
+            "モノクロ": ['transparent','#ffffff','#f8f8f8','#e0e0e0','#cccccc','#b0b0b0','#999999','#808080','#666666','#505050','#404040','#303030','#202020','#101010','#050505','#000000'],
+            "暖色": ['transparent','#ff6b6b','#fa5252','#f03e3e','#e03131','#c92a2a','#ffa94d','#fd7e14','#f76707','#e8590c','#d9480f','#ffffff','#ffec99','#fab005','#222222','#000000'],
+            "寒色": ['transparent','#339af0','#228be6','#1c7ed6','#1971c2','#1864ab','#38d9a9','#20c997','#12b886','#0ca678','#099268','#ffffff','#a5d8ff','#111111','#222222','#000000'],
+            "ファミコン": ['transparent','#f8f8f8','#bcbcbc','#7c7c7c','#f8d878','#f8a000','#f83800','#d80000','#008800','#00a800','#0058f8','#3cbcfc','#0000bc','#6844fc','#ffffff','#000000'],
+            "パステル": ['transparent','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#ffc6ff','#9bf6ff','#a0c4ff','#bdb2ff','#fffffc','#ffffff','#333333','#aaaaaa','#222222','#000000'],
+            "赤黒白": ['transparent','#ff0000','#cc0000','#990000','#660000','#330000','#ff8888','#ffcccc','#ffffff','#eeeeee','#cccccc','#999999','#666666','#333333','#111111','#000000'],
+            "サイバー": ['transparent','#00ff00','#ff00ff','#00ffff','#ffff00','#ff0000','#ffffff','#003300','#330033','#003333','#333300','#330000','#444444','#888888','#222222','#000000'],
+            "森": ['transparent','#2d5a27','#1e3f1a','#4a7c44','#6b8e23','#8fbc8f','#556b2f','#a2ad91','#deb887','#8b4513','#5d4037','#ffffff','#cccccc','#444444','#222222','#000000'],
+            "海": ['transparent','#0077be','#005b96','#03396c','#011f4b','#6497b1','#b3cde0','#009688','#4db6ac','#80cbc4','#ffffff','#dddddd','#aaaaaa','#333333','#111111','#000000'],
+            "夕焼け": ['transparent','#ff4500','#ff6347','#ff8c00','#ffa500','#ffd700','#2f4f4f','#708090','#191970','#000080','#483d8b','#ffffff','#aaaaaa','#333333','#111111','#000000'],
+            "GB風": ['transparent','#9bbc0f','#8bab0f','#306230','#0f380f','#ffffff','#dddddd','#bbbbbb','#999999','#777777','#555555','#333333','#111111','#050505','#222222','#000000'],
+            "和風": ['transparent','#a63d33','#e0815e','#6b4a3e','#f2e8d5','#bfbd97','#8c9e5e','#5e6146','#3e4a3d','#2b3a2d','#1a201a','#ffffff','#cccccc','#888888','#222222','#000000'],
+            "ベリー": ['transparent','#5d001e','#9a1750','#ee4c7c','#ff66aa','#cc3366','#990033','#ffcccc','#ff99cc','#ffffff','#eeeeee','#cccccc','#999999','#444444','#222222','#000000'],
+            "原色": ['transparent','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ffffff','#808080','#800000','#008000','#000080','#808000','#800080','#444444','#000000']
+        };
+
+        function renderV2Code(code) {
+            try {
+                const base64 = code.replace("!miv2 ", "").trim();
+                
+                const identifier = base64[0];
+                const paletteIdHex = base64[1];
+                const bodyBase64 = base64.substring(2);
+                
+                if (identifier !== 'r' && identifier !== 'b') {
+                    return null;
+                }
+                
+                const setId = parseInt(paletteIdHex, 16);
+                if (isNaN(setId) || setId < 0 || setId > 15) {
+                    return null;
+                }
+                
+                const body = Array.from(atob(bodyBase64)).map(c => c.charCodeAt(0));
+                
+                const palKeys = Object.keys(PALETTES);
+                const key = palKeys[setId] || "基本";
+                const palette = [...PALETTES[key]];
+                
+                let p = 0;
+                
+                // カスタムカラー数
+                const customColorCount = body[p++];
+                
+                // カスタムカラー読み込み
+                for (let i = 0; i < customColorCount; i++) {
+                    const colorIndex = body[p++];
+                    const r = body[p++];
+                    const g = body[p++];
+                    const b = body[p++];
+                    
+                    if (colorIndex >= 0 && colorIndex < 16) {
+                        palette[colorIndex] = `rgb(${r},${g},${b})`;
+                    }
+                }
+                
+                const pixelData = body.slice(p);
+                const type = (identifier === 'r') ? 2 : 3;
+                
+                let pixels = [];
+                
+                if (type === 2) {
+                    for (let i = 0; i < pixelData.length; i += 2) {
+                        const color = pixelData[i];
+                        const count = (i + 1 < pixelData.length) ? pixelData[i + 1] : 1;
+                        for (let j = 0; j < count; j++) pixels.push(color);
+                    }
+                } else if (type === 3) {
+                    for (let i = 0; i < pixelData.length; i++) {
+                        const byte = pixelData[i];
+                        const pixel1 = (byte >> 4) & 0xF;
+                        const pixel2 = byte & 0xF;
+                        pixels.push(pixel1);
+                        if (pixels.length < 256) pixels.push(pixel2);
+                    }
+                }
+                
+                return { 
+                    pixels, 
+                    palette, 
+                    setId, 
+                    type, 
+                    identifier, 
+                    paletteKey: key,
+                    customColors: customColorCount
+                };
+            } catch (e) {
+                console.error('デコードエラー:', e);
+                return null;
+            }
+        }
+
+        function testDecode() {
+            const code = document.getElementById('input').value.trim();
+            const result = renderV2Code(code);
+            
+            if (!result) {
+                document.getElementById('result').innerHTML = '<pre style="color: red;">デコード失敗</pre>';
+                return;
+            }
+
+            const info = `
+<h2>デコード成功 ✓</h2>
+<pre>
+識別子: ${result.identifier} (${result.identifier === 'r' ? 'RLE圧縮' : 'Base64ニブル'})
+パレットID: ${result.setId} (${result.paletteKey})
+カスタムカラー: ${result.customColors}色
+ピクセル数: ${result.pixels.length} / 256
+</pre>
+            `;
+            document.getElementById('result').innerHTML = info;
+
+            // グリッド描画
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            result.pixels.forEach(colorIdx => {
+                const px = document.createElement('div');
+                px.className = 'px';
+                px.style.backgroundColor = result.palette[colorIdx] || 'transparent';
+                grid.appendChild(px);
+            });
+        }
+
+        // 初回実行
+        testDecode();
+    </script>
+</body>
+</html>
