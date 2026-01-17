@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MiRoDot Editor</title>
+    <style>
+        /* --- 基本デザイン（ダークモード） --- */
+        body { 
+            font-family: sans-serif; display: flex; flex-direction: column; align-items: center; 
+            background: #121212; color: white; padding: 10px; margin: 0;
+            overflow-x: hidden;
+            transition: background 0.3s, color 0.3s;
+        }
+        
+        /* --- ライトモード用設定 --- */
+        body.light-mode { background: #f0f0f0; color: #333; }
+
+        .editor-layout { display: flex; gap: 15px; align-items: flex-start; margin-bottom: 15px; max-width: 100vw; }
+        
+        .grid-container { 
+            width: 320px; height: 320px; 
+            background-color: #1a1a1a;
+            background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
+            background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border: 2px solid #444; position: relative; 
+            touch-action: none; 
+        }
+        body.light-mode .grid-container {
+            background-color: #ffffff;
+            background-image: linear-gradient(45deg, #ddd 25%, transparent 25%), linear-gradient(-45deg, #ddd 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ddd 75%), linear-gradient(-45deg, transparent 75%, #ddd 75%);
+            border-color: #bbb;
+        }
+
+        #grid { display: grid; grid-template-columns: repeat(16, 1fr); grid-template-rows: repeat(16, 1fr); width: 100%; height: 100%; }
+        .cell { width: 100%; height: 100%; cursor: crosshair; box-sizing: border-box; border: 0.5px solid rgba(255, 255, 255, 0.1); }
+        body.light-mode .cell { border: 0.5px solid rgba(0, 0, 0, 0.05); }
+        #grid.no-grid .cell { border: none; }
+
+        .preview-pane { display: flex; flex-direction: column; align-items: center; background: #1e1e1e; padding: 10px; border-radius: 8px; border: 1px solid #333; }
+        body.light-mode .preview-pane { background: #e0e0e0; border-color: #bbb; }
+        
+        .preview-box { width: 64px; height: 64px; display: grid; grid-template-columns: repeat(16, 1fr); background: #000; }
+        body.light-mode .preview-box { background: #fff; border: 1px solid #ccc; }
+        .p-pixel { width: 100%; height: 100%; }
+
+        .palette-selector { display: flex; gap: 5px; flex-wrap: wrap; width: 95vw; margin-bottom: 10px; justify-content: center; }
+        .pal-btn { padding: 8px 10px; font-size: 12px; cursor: pointer; background: #333; border: 1px solid #555; color: #aaa; border-radius: 4px; }
+        body.light-mode .pal-btn { background: #ddd; border-color: #ccc; color: #666; }
+        .pal-btn.active { background: #9146ff; color: white; border-color: #fff; }
+        
+        .palette { display: flex; gap: 6px; flex-wrap: wrap; width: 95vw; justify-content: center; margin-bottom: 15px; }
+        .p-color { width: 40px; height: 40px; cursor: pointer; border: 2px solid #444; border-radius: 6px; position: relative; box-sizing: border-box; }
+        body.light-mode .p-color { border-color: #ccc; }
+        .p-color.selected { border-color: #fff; transform: scale(1.1); box-shadow: 0 0 12px rgba(255,255,255,0.5); z-index: 10; }
+        body.light-mode .p-color.selected { border-color: #9146ff; }
+        
+        .p-transparent { background-color: #333 !important; }
+        body.light-mode .p-transparent { background-color: #eee !important; }
+        .p-transparent::after { content: "×"; color: #ff4444; font-size: 24px; font-weight: bold; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        .tool-box { display: flex; gap: 8px; margin-bottom: 10px; background: #222; padding: 10px; border-radius: 8px; border: 1px solid #333; }
+        body.light-mode .tool-box { background: #e0e0e0; border-color: #bbb; }
+        .tool-btn { padding: 10px 12px; cursor: pointer; border: 1px solid #444; background: #333; color: white; border-radius: 4px; font-size: 13px; }
+        body.light-mode .tool-btn { background: #ddd; border-color: #ccc; color: #333; }
+        .tool-btn.active { border-color: #9146ff; background: #9146ff; color: white !important; }
+        
+        .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        button { padding: 12px 18px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; color: white; font-size: 14px; }
+        .btn-undo { background: #6e44ff; } .btn-redo { background: #27ae60; } .btn-clear { background: #555; } .btn-gen { background: #9146ff; }
+        
+        textarea { width: 90vw; height: 60px; margin-top: 15px; background: #000; color: #00ff00; border: 1px solid #333; font-family: monospace; padding: 8px; border-radius: 4px; resize: none; font-size: 12px; }
+        body.light-mode textarea { background: #fff; border-color: #ccc; color: #008000; }
+
+        /* --- 保存セクション --- */
+        .save-section { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 15px; background: #222; border-radius: 8px; width: 90vw; }
+        body.light-mode .save-section { background: #e0e0e0; border: 1px solid #bbb; }
+        .save-options { display: flex; gap: 10px; font-size: 14px; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .btn-save { background: #2ecc71; width: 200px; }
+        .btn-save:hover { background: #27ae60; }
+
+/* 右側パネルを縦に並べる設定 */
+.side-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+.color-edit-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: #1e1e1e;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    width: 64px;
+    box-sizing: border-box;
+}
+
+body.light-mode .color-edit-panel {
+    background: #e0e0e0;
+    border-color: #bbb;
+}
+
+.panel-label { font-size: 9px; color: #888; }
+#current-hex { font-size: 10px; font-family: monospace; color: #9146ff; font-weight: bold; }
+
+.btn-color-edit { width: 100%; padding: 5px 0 !important; font-size: 11px !important; }
+
+/* リセットボタンの独自スタイル */
+.btn-reset {
+    width: 100%;
+    padding: 3px 0 !important;
+    font-size: 10px !important;
+    background: #444 !important;
+    border: 1px solid #555 !important;
+    margin-top: 2px;
+}
+
+#color-input { visibility: hidden; width: 0; height: 0; position: absolute; }        @media (min-width: 600px) {
+            .grid-container { width: 352px; height: 352px; }
+            .palette, .palette-selector { width: 580px; }
+            textarea, .save-section { width: 480px; }
+        }
+    </style>
+</head>
+<body id="main-body">
+    <div class="tool-box">
+        <div id="btn-pen" class="tool-btn active" onclick="setTool('pen')">ペン [R]</div>
+        <div id="btn-fill" class="tool-btn" onclick="setTool('fill')">バケツ [F]</div>
+        <div id="btn-picker" class="tool-btn" onclick="setTool('picker')">スポイト [Q]</div>
+        <div id="btn-grid" class="tool-btn active" onclick="toggleGrid()">枠 [I]</div>
+        <div id="btn-theme" class="tool-btn" onclick="toggleTheme()">背景 [O]</div>
+    </div>
+
+<div class="editor-layout">
+    <div class="grid-container"><div id="grid"></div></div>
+
+    <div class="side-controls">
+        <div class="preview-pane">
+            <div id="preview" class="preview-box"></div>
+        </div>
+
+<div class="color-edit-panel">
+    <div class="panel-label">色変更</div>
+    <div id="current-hex">#FFFFFF</div>
+    <button class="tool-btn btn-color-edit" onclick="openColorPicker()">変更</button>
+    <button class="tool-btn btn-reset" onclick="resetCurrentPalette()" style="background: #555; margin-top: 2px;">reset</button>
+    <input type="color" id="color-input" oninput="updateCurrentPaletteColor(this.value)">
+</div>
+    </div>
+</div>
+    <div class="palette-selector" id="pal-selector"></div>
+    <div class="palette" id="palette"></div>
+    
+    <div class="controls">
+        <button class="btn-undo" onclick="undo()">[Z] 戻る</button>
+        <button class="btn-redo" onclick="redo()">[Y] 進む</button>
+        <button class="btn-clear" onclick="clearGrid()">消去</button>
+        <button class="btn-gen" onclick="generateCode()">コード生成</button>
+    </div>
+    
+    <textarea id="output" readonly placeholder="ここにコードが生成されます"></textarea>
+
+    <div class="save-section">
+        <div class="save-options">
+            <span>倍率:</span>
+            <label><input type="radio" name="scale" value="1"> 1x</label>
+            <label><input type="radio" name="scale" value="2"> 2x</label>
+            <label><input type="radio" name="scale" value="4" checked> 4x</label>
+            <label><input type="radio" name="scale" value="8"> 8x</label>
+            <label><input type="radio" name="scale" value="16"> 16x</label>
+        </div>
+        <button class="btn-save" onclick="downloadPNG()">PNGとして保存</button>
+    </div>
+
+    <script>
+        const PALETTES = {
+            "基本": ['transparent','#ffffff','#888888','#222222','#ff4b2b','#33cc33','#0077ff','#ffee00','#ff99cc','#66ffff','#ccff33','#8b4513','#b22222','#000080','#ff8c00','#000000'],
+            "人物": ['transparent','#fff5eb','#fde5d2','#f9d4b8','#f3b08c','#e3906c','#c07254','#91553d','#ff66a3','#ff0066','#9900ff','#442211','#55ccff','#ffffff','#222222','#000000'],
+            "モノクロ": ['transparent','#ffffff','#f8f8f8','#e0e0e0','#cccccc','#b0b0b0','#999999','#808080','#666666','#505050','#404040','#303030','#202020','#101010','#050505','#000000'],
+            "暖色": ['transparent','#ff6b6b','#fa5252','#f03e3e','#e03131','#c92a2a','#ffa94d','#fd7e14','#f76707','#e8590c','#d9480f','#ffffff','#ffec99','#fab005','#222222','#000000'],
+            "寒色": ['transparent','#339af0','#228be6','#1c7ed6','#1971c2','#1864ab','#38d9a9','#20c997','#12b886','#0ca678','#099268','#ffffff','#a5d8ff','#111111','#222222','#000000'],
+            "ファミコン": ['transparent','#f8f8f8','#bcbcbc','#7c7c7c','#f8d878','#f8a000','#f83800','#d80000','#008800','#00a800','#0058f8','#3cbcfc','#0000bc','#6844fc','#ffffff','#000000'],
+            "パステル": ['transparent','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#ffc6ff','#9bf6ff','#a0c4ff','#bdb2ff','#fffffc','#ffffff','#333333','#aaaaaa','#222222','#000000'],
+            "赤黒白": ['transparent','#ff0000','#cc0000','#990000','#660000','#330000','#ff8888','#ffcccc','#ffffff','#eeeeee','#cccccc','#999999','#666666','#333333','#111111','#000000'],
+            "サイバー": ['transparent','#00ff00','#ff00ff','#00ffff','#ffff00','#ff0000','#ffffff','#003300','#330033','#003333','#333300','#330000','#444444','#888888','#222222','#000000'],
+            "森": ['transparent','#2d5a27','#1e3f1a','#4a7c44','#6b8e23','#8fbc8f','#556b2f','#a2ad91','#deb887','#8b4513','#5d4037','#ffffff','#cccccc','#444444','#222222','#000000'],
+            "海": ['transparent','#0077be','#005b96','#03396c','#011f4b','#6497b1','#b3cde0','#009688','#4db6ac','#80cbc4','#ffffff','#dddddd','#aaaaaa','#333333','#111111','#000000'],
+            "夕焼け": ['transparent','#ff4500','#ff6347','#ff8c00','#ffa500','#ffd700','#2f4f4f','#708090','#191970','#000080','#483d8b','#ffffff','#aaaaaa','#333333','#111111','#000000'],
+            "GB風": ['transparent','#9bbc0f','#8bab0f','#306230','#0f380f','#ffffff','#dddddd','#bbbbbb','#999999','#777777','#555555','#333333','#111111','#050505','#222222','#000000'],
+            "和風": ['transparent','#a63d33','#e0815e','#6b4a3e','#f2e8d5','#bfbd97','#8c9e5e','#5e6146','#3e4a3d','#2b3a2d','#1a201a','#ffffff','#cccccc','#888888','#222222','#000000'],
+            "ベリー": ['transparent','#5d001e','#9a1750','#ee4c7c','#ff66aa','#cc3366','#990033','#ffcccc','#ff99cc','#ffffff','#eeeeee','#cccccc','#999999','#444444','#222222','#000000'],
+            "原色": ['transparent','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ffffff','#808080','#800000','#008000','#000080','#808000','#800080','#444444','#000000']
+        };
+const DEFAULT_PALETTES = JSON.parse(JSON.stringify(PALETTES));
+
+// --- 追加: LocalStorageから保存されたパレットを読み込む ---
+const savedPalettes = localStorage.getItem('mirodot_palettes');
+if (savedPalettes) {
+    try {
+        const parsed = JSON.parse(savedPalettes);
+        // 保存されているパレットデータで現在のPALETTESを上書き
+        Object.assign(PALETTES, parsed);
+    } catch (e) {
+        console.error("パレットデータの読み込みに失敗しました", e);
+    }
+}
+
+// --- 追加: パレットの状態をLocalStorageに保存する関数 ---
+function savePalettesToLocal() {
+    localStorage.setItem('mirodot_palettes', JSON.stringify(PALETTES));
+}
+
+        let currentPalKey = "基本";
+        let selectedIdx = 1;
+        let prevIdx = 1;
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let undoStack = [];
+        let redoStack = [];
+
+        const grid = document.getElementById('grid');
+        const preview = document.getElementById('preview');
+        const cells = [];
+        const previewCells = [];
+
+        function handleStart(i, e) {
+            saveHistory();
+            if (currentTool === 'picker') { selectColor(parseInt(cells[i].dataset.idx)); setTool('pen'); }
+            else if (currentTool === 'fill') { fill(i); }
+            else { isDrawing = true; paint(i); }
+            if (e.cancelable) e.preventDefault();
+        }
+
+        for (let i = 0; i < 256; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell'; cell.dataset.idx = "0";
+            cell.onmousedown = (e) => handleStart(i, e);
+            cell.onmouseenter = () => { if (isDrawing && currentTool === 'pen') paint(i); };
+            cell.addEventListener('touchstart', (e) => handleStart(i, e), {passive: false});
+            grid.appendChild(cell); cells.push(cell);
+            const pPixel = document.createElement('div');
+            pPixel.className = 'p-pixel'; preview.appendChild(pPixel); previewCells.push(pPixel);
+        }
+
+        grid.addEventListener('touchmove', (e) => {
+            if (!isDrawing || currentTool !== 'pen') return;
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (target && target.classList.contains('cell')) {
+                const index = cells.indexOf(target);
+                if (index !== -1) paint(index);
+            }
+            if (e.cancelable) e.preventDefault();
+        }, {passive: false});
+
+        function paint(i) {
+            const color = PALETTES[currentPalKey][selectedIdx];
+            cells[i].style.backgroundColor = color;
+            cells[i].dataset.idx = selectedIdx;
+            previewCells[i].style.backgroundColor = color;
+        }
+
+        function refreshColors() {
+            cells.forEach((c, i) => {
+                const idx = parseInt(c.dataset.idx);
+                const color = PALETTES[currentPalKey][idx];
+                c.style.backgroundColor = color;
+                previewCells[i].style.backgroundColor = color;
+            });
+            renderPalette();
+        }
+
+        function renderPalette() {
+            const palDiv = document.getElementById('palette');
+            palDiv.innerHTML = '';
+            PALETTES[currentPalKey].forEach((c, i) => {
+                const btn = document.createElement('div');
+                btn.className = 'p-color' + (i === selectedIdx ? ' selected' : '');
+                if (i === 0) btn.classList.add('p-transparent');
+                btn.style.backgroundColor = c;
+                btn.onclick = () => selectColor(i);
+                palDiv.appendChild(btn);
+            });
+        }
+
+        const selDiv = document.getElementById('pal-selector');
+        Object.keys(PALETTES).forEach(key => {
+            const btn = document.createElement('button');
+            btn.className = 'pal-btn' + (key === currentPalKey ? ' active' : '');
+            btn.innerText = key;
+            btn.onclick = () => {
+                document.querySelectorAll('.pal-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentPalKey = key;
+                refreshColors();
+            };
+            selDiv.appendChild(btn);
+        });
+
+        function selectColor(index) { prevIdx = selectedIdx; selectedIdx = index; renderPalette(); }
+// カラーピッカーを開く
+function openColorPicker() {
+    if (selectedIdx === 0) {
+        alert("透明枠（×）の色は変更できません。他の色を選択してください。");
+        return;
+    }
+    const colorInput = document.getElementById('color-input');
+    const currentColor = PALETTES[currentPalKey][selectedIdx];
+    colorInput.value = currentColor;
+    colorInput.click(); // 隠れたinputをプログラムからクリック
+}
+
+// パレットの色を更新する
+function updateCurrentPaletteColor(hex) {
+    if (selectedIdx === 0) return;
+    
+    saveHistory(); // 変更前に履歴に保存
+    
+    // 現在のパレット配列の指定の色を上書き
+    PALETTES[currentPalKey][selectedIdx] = hex;
+    
+    // UIを更新
+    document.getElementById('current-hex').innerText = hex.toUpperCase();
+    refreshColors(); // グリッドとプレビューの再描画
+    savePalettesToLocal(); // ★ここに追加：LocalStorageに保存
+}
+
+
+// 3. 【リセット機能】選択中のパレットをデフォルトの色に戻す
+function resetCurrentPalette() {
+    if (confirm(`パレット「${currentPalKey}」を初期の色に戻しますか？`)) {
+        saveHistory();
+        
+        // 保存しておいた DEFAULT_PALETTES から現在のパレットの配列をコピーして戻す
+        PALETTES[currentPalKey] = [...DEFAULT_PALETTES[currentPalKey]];
+        
+        // UIの表示（Hexコード）を現在の選択色に合わせて更新
+        const hex = PALETTES[currentPalKey][selectedIdx];
+        document.getElementById('current-hex').innerText = (selectedIdx === 0) ? "TRANS" : hex.toUpperCase();
+        
+        refreshColors(); // 全体を再描画
+        savePalettesToLocal(); // ★ここに追加：保存（リセットした状態を保存）
+    }
+}
+// 元の selectColor 関数を少し拡張して、現在の16進数を表示するようにする
+const originalSelectColor = selectColor;
+selectColor = function(index) {
+    originalSelectColor(index);
+    const hex = PALETTES[currentPalKey][index];
+    document.getElementById('current-hex').innerText = (index === 0) ? "TRANSPARENT" : hex.toUpperCase();
+};
+
+        function saveHistory() {
+            undoStack.push(JSON.stringify({pal: currentPalKey, data: cells.map(c => c.dataset.idx)}));
+            if (undoStack.length > 50) undoStack.shift();
+            redoStack = [];
+        }
+
+        function undo() {
+            if (undoStack.length === 0) return;
+            redoStack.push(JSON.stringify({pal: currentPalKey, data: cells.map(c => c.dataset.idx)}));
+            const last = JSON.parse(undoStack.pop());
+            currentPalKey = last.pal;
+            last.data.forEach((idx, i) => { cells[i].dataset.idx = idx; });
+            refreshColors();
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            undoStack.push(JSON.stringify({pal: currentPalKey, data: cells.map(c => c.dataset.idx)}));
+            const next = JSON.parse(redoStack.pop());
+            currentPalKey = next.pal;
+            next.data.forEach((idx, i) => { cells[i].dataset.idx = idx; });
+            refreshColors();
+        }
+
+        function setTool(t) {
+            currentTool = t;
+            document.querySelectorAll('.tool-btn').forEach(b => { 
+                if(b.id !== 'btn-grid' && b.id !== 'btn-theme') b.classList.remove('active'); 
+            });
+            document.getElementById('btn-' + t).classList.add('active');
+        }
+
+        function toggleGrid() {
+            grid.classList.toggle('no-grid');
+            document.getElementById('btn-grid').classList.toggle('active');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            document.getElementById('btn-theme').classList.toggle('active');
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+            const k = e.key.toLowerCase();
+            if (k === 'r') setTool('pen'); 
+            if (k === 'f') setTool('fill'); 
+            if (k === 'q') setTool('picker');
+            if (k === 'x') selectColor(0); 
+            if (k === 'a') selectColor(prevIdx); 
+            if (k === 'z') undo(); 
+            if (k === 'y') redo();
+            if (k === 'i') toggleGrid(); 
+            if (k === 'o') toggleTheme();
+            if (/[1-9]/.test(k)) selectColor(parseInt(k));
+        });
+
+        window.onmouseup = () => isDrawing = false;
+        window.addEventListener('touchend', () => isDrawing = false);
+
+        function fill(pos) {
+            const targetIdx = cells[pos].dataset.idx;
+            if (targetIdx == selectedIdx) return;
+            const queue = [pos], processed = new Set();
+            while (queue.length > 0) {
+                const p = queue.shift();
+                if (processed.has(p) || cells[p].dataset.idx !== targetIdx) continue;
+                cells[p].dataset.idx = selectedIdx;
+                processed.add(p);
+                const x = p % 16, y = Math.floor(p / 16);
+                if (x > 0) queue.push(p - 1); if (x < 15) queue.push(p + 1);
+                if (y > 0) queue.push(p - 16); if (y < 15) queue.push(p + 16);
+            }
+            refreshColors();
+        }
+
+        function clearGrid() {
+            if(confirm("すべて消去しますか？")) { saveHistory(); cells.forEach(c => c.dataset.idx = "0"); refreshColors(); }
+        }
+
+function generateCode() {
+            // 現在選択されているパレットの色情報を取得 (16色分)
+            const currentColors = PALETTES[currentPalKey];
+            let colorData = "";
+            
+            currentColors.forEach(c => {
+                if (c === 'transparent') {
+                    // 透明枠は黒(000000)として送る（表示側で0番を透明処理するため）
+                    colorData += "000000";
+                } else {
+                    // #を取り除いてRRGGBBの6文字にする
+                    colorData += c.replace('#', '').toLowerCase();
+                }
+            });
+
+            // 256ピクセルの色インデックス(0-f)をそのまま連結（圧縮なし）
+            const pixelData = cells.map(c => parseInt(c.dataset.idx).toString(16)).join('');
+
+            // フォーマット: !draw + G + カラー96文字 + ピクセル256文字
+            const finalCode = "!mirodot G" + colorData + pixelData;
+
+            document.getElementById('output').value = finalCode;
+            
+            // クリップボードにコピー
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(finalCode).then(() => {
+                    alert("!MiRoDotコードをコピーしました！");
+                });
+            }
+        }
+        /* --- PNGダウンロード機能 --- */
+        function downloadPNG() {
+            const scale = parseInt(document.querySelector('input[name="scale"]:checked').value);
+            const size = 16 * scale;
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // アンチエイリアスを無効にしてドットをクッキリさせる
+            ctx.imageSmoothingEnabled = false;
+
+            cells.forEach((cell, i) => {
+                const x = (i % 16) * scale;
+                const y = Math.floor(i / 16) * scale;
+                const idx = parseInt(cell.dataset.idx);
+                const color = PALETTES[currentPalKey][idx];
+
+                if (color === 'transparent') {
+                    ctx.clearRect(x, y, scale, scale);
+                } else {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x, y, scale, scale);
+                }
+            });
+
+            const link = document.createElement('a');
+            link.download = `pixel_art_${size}x${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        renderPalette();
+    </script>
+    <script src="paint.js"></script>
+</body>
+</html>
