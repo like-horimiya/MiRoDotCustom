@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)https://miyaro3.github.io/paint1616/show.html -->
-<html lang="ja"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    
-    <title>miyaro paint - Final Integrated Version</title>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MiRoDot Show v2 - Final Integrated Version</title>
     <style>
         body { margin: 0; overflow: hidden; background: transparent; font-family: 'Arial', sans-serif; }
         #stage { width: 852px; height: 480px; position: relative; overflow: hidden; }
@@ -66,233 +66,208 @@
 <body>
     <div id="stage"></div>
 
-    <script src="./show_files/comfy.min.js.ダウンロード"></script>
-    <script>
-        const PALETTES = {
-            "0": ['transparent','#ffffff','#888888','#222222','#ff4b2b','#33cc33','#0077ff','#ffee00','#ff99cc','#66ffff','#ccff33','#8b4513','#b22222','#000080','#ff8c00','#000000'],
-            "1": ['transparent','#fff5eb','#fde5d2','#f9d4b8','#f3b08c','#e3906c','#c07254','#91553d','#ff66a3','#ff0066','#9900ff','#442211','#55ccff','#ffffff','#222222','#000000'],
-            "2": ['transparent','#ffffff','#f8f8f8','#e0e0e0','#cccccc','#b0b0b0','#999999','#808080','#666666','#505050','#404040','#303030','#202020','#101010','#050505','#000000'],
-            "3": ['transparent','#ff6b6b','#fa5252','#f03e3e','#e03131','#c92a2a','#ffa94d','#fd7e14','#f76707','#e8590c','#d9480f','#ffffff','#ffec99','#fab005','#222222','#000000'],
-            "4": ['transparent','#339af0','#228be6','#1c7ed6','#1971c2','#1864ab','#38d9a9','#20c997','#12b886','#0ca678','#099268','#ffffff','#a5d8ff','#111111','#222222','#000000'],
-            "5": ['transparent','#f8f8f8','#bcbcbc','#7c7c7c','#f8d878','#f8a000','#f83800','#d80000','#008800','#00a800','#0058f8','#3cbcfc','#0000bc','#6844fc','#ffffff','#000000'],
-            "6": ['transparent','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#ffc6ff','#9bf6ff','#a0c4ff','#bdb2ff','#fffffc','#ffffff','#333333','#aaaaaa','#222222','#000000'],
-            "7": ['transparent','#ff0000','#cc0000','#990000','#660000','#330000','#ff8888','#ffcccc','#ffffff','#eeeeee','#cccccc','#999999','#666666','#333333','#111111','#000000'],
-            "8": ['transparent','#00ff00','#ff00ff','#00ffff','#ffff00','#ff0000','#ffffff','#003300','#330033','#003333','#330033','#330000','#444444','#888888','#222222','#000000'],
-            "9": ['transparent','#2d5a27','#1e3f1a','#4a7c44','#6b8e23','#8fbc8f','#556b2f','#a2ad91','#deb887','#8b4513','#5d4037','#ffffff','#cccccc','#444444','#222222','#000000'],
-            "a": ['transparent','#0077be','#005b96','#03396c','#011f4b','#6497b1','#b3cde0','#009688','#4db6ac','#80cbc4','#ffffff','#dddddd','#aaaaaa','#333333','#111111','#000000'],
-            "b": ['transparent','#ff4500','#ff6347','#ff8c00','#ffa500','#ffd700','#2f4f4f','#708090','#191970','#000080','#483d8b','#ffffff','#aaaaaa','#333333','#111111','#000000'],
-            "c": ['transparent','#9bbc0f','#8bab0f','#306230','#0f380f','#ffffff','#dddddd','#bbbbbb','#999999','#777777','#555555','#333333','#111111','#050505','#222222','#000000'],
-            "d": ['transparent','#a63d33','#e0815e','#6b4a3e','#f2e8d5','#bfbd97','#8c9e5e','#5e6146','#3e4a3d','#2b3a2d','#1a201a','#ffffff','#cccccc','#888888','#222222','#000000'],
-            "e": ['transparent','#5d001e','#9a1750','#ee4c7c','#ff66aa','#cc3366','#990033','#ffcccc','#ff99cc','#ffffff','#eeeeee','#cccccc','#999999','#444444','#222222','#000000'],
-            "f": ['transparent','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ffffff','#808080','#800000','#008000','#000080','#808000','#800080','#444444','#000000']
-        };
+    <script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+</body>
+</html>
 
-        let currentSpeed = 2; // パレード基本速度
-        let endingSpeed = 0.5; // エンディング速度
-        let isEnding = false;  
-        const ART_WIDTH = 80;
-        const MARGIN = 50; 
+<script>
+/**
+ * show.js - MiRoDot Show v2
+ * 条件付きデコード対応（v2形式 + 旧G形式の両方をサポート）
+ */
+
+// 標準パレット定義（v2形式で参照される）
+const PALETTES = {
+    "基本": ['transparent','#ffffff','#888888','#222222','#ff4b2b','#33cc33','#0077ff','#ffee00','#ff99cc','#66ffff','#ccff33','#8b4513','#b22222','#000080','#ff8c00','#000000'],
+    "人物": ['transparent','#fff5eb','#fde5d2','#f9d4b8','#f3b08c','#e3906c','#c07254','#91553d','#ff66a3','#ff0066','#9900ff','#442211','#55ccff','#ffffff','#222222','#000000'],
+    "モノクロ": ['transparent','#ffffff','#f8f8f8','#e0e0e0','#cccccc','#b0b0b0','#999999','#808080','#666666','#505050','#404040','#303030','#202020','#101010','#050505','#000000'],
+    "暖色": ['transparent','#ff6b6b','#fa5252','#f03e3e','#e03131','#c92a2a','#ffa94d','#fd7e14','#f76707','#e8590c','#d9480f','#ffffff','#ffec99','#fab005','#222222','#000000'],
+    "寒色": ['transparent','#339af0','#228be6','#1c7ed6','#1971c2','#1864ab','#38d9a9','#20c997','#12b886','#0ca678','#099268','#ffffff','#a5d8ff','#111111','#222222','#000000'],
+    "ファミコン": ['transparent','#f8f8f8','#bcbcbc','#7c7c7c','#f8d878','#f8a000','#f83800','#d80000','#008800','#00a800','#0058f8','#3cbcfc','#0000bc','#6844fc','#ffffff','#000000'],
+    "パステル": ['transparent','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#ffc6ff','#9bf6ff','#a0c4ff','#bdb2ff','#fffffc','#ffffff','#333333','#aaaaaa','#222222','#000000'],
+    "赤黒白": ['transparent','#ff0000','#cc0000','#990000','#660000','#330000','#ff8888','#ffcccc','#ffffff','#eeeeee','#cccccc','#999999','#666666','#333333','#111111','#000000'],
+    "サイバー": ['transparent','#00ff00','#ff00ff','#00ffff','#ffff00','#ff0000','#ffffff','#003300','#330033','#003333','#333300','#330000','#444444','#888888','#222222','#000000'],
+    "森": ['transparent','#2d5a27','#1e3f1a','#4a7c44','#6b8e23','#8fbc8f','#556b2f','#a2ad91','#deb887','#8b4513','#5d4037','#ffffff','#cccccc','#444444','#222222','#000000'],
+    "海": ['transparent','#0077be','#005b96','#03396c','#011f4b','#6497b1','#b3cde0','#009688','#4db6ac','#80cbc4','#ffffff','#dddddd','#aaaaaa','#333333','#111111','#000000'],
+    "夕焼け": ['transparent','#ff4500','#ff6347','#ff8c00','#ffa500','#ffd700','#2f4f4f','#708090','#191970','#000080','#483d8b','#ffffff','#aaaaaa','#333333','#111111','#000000'],
+    "GB風": ['transparent','#9bbc0f','#8bab0f','#306230','#0f380f','#ffffff','#dddddd','#bbbbbb','#999999','#777777','#555555','#333333','#111111','#050505','#222222','#000000'],
+    "和風": ['transparent','#a63d33','#e0815e','#6b4a3e','#f2e8d5','#bfbd97','#8c9e5e','#5e6146','#3e4a3d','#2b3a2d','#1a201a','#ffffff','#cccccc','#888888','#222222','#000000'],
+    "ベリー": ['transparent','#5d001e','#9a1750','#ee4c7c','#ff66aa','#cc3366','#990033','#ffcccc','#ff99cc','#ffffff','#eeeeee','#cccccc','#999999','#444444','#222222','#000000'],
+    "原色": ['transparent','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ffffff','#808080','#800000','#008000','#000080','#808000','#800080','#444444','#000000']
+};
+
+// 旧形式用パレット定義（!mirodot G形式）
+const LEGACY_PALETTES = {
+    "0": ['transparent','#ffffff','#888888','#222222','#ff4b2b','#33cc33','#0077ff','#ffee00','#ff99cc','#66ffff','#ccff33','#8b4513','#b22222','#000080','#ff8c00','#000000'],
+    "1": ['transparent','#fff5eb','#fde5d2','#f9d4b8','#f3b08c','#e3906c','#c07254','#91553d','#ff66a3','#ff0066','#9900ff','#442211','#55ccff','#ffffff','#222222','#000000'],
+    "2": ['transparent','#ffffff','#f8f8f8','#e0e0e0','#cccccc','#b0b0b0','#999999','#808080','#666666','#505050','#404040','#303030','#202020','#101010','#050505','#000000'],
+    "3": ['transparent','#ff6b6b','#fa5252','#f03e3e','#e03131','#c92a2a','#ffa94d','#fd7e14','#f76707','#e8590c','#d9480f','#ffffff','#ffec99','#fab005','#222222','#000000'],
+    "4": ['transparent','#339af0','#228be6','#1c7ed6','#1971c2','#1864ab','#38d9a9','#20c997','#12b886','#0ca678','#099268','#ffffff','#a5d8ff','#111111','#222222','#000000'],
+    "5": ['transparent','#f8f8f8','#bcbcbc','#7c7c7c','#f8d878','#f8a000','#f83800','#d80000','#008800','#00a800','#0058f8','#3cbcfc','#0000bc','#6844fc','#ffffff','#000000'],
+    "6": ['transparent','#ffb7b2','#ffdac1','#e2f0cb','#b5ead7','#c7ceea','#ffc6ff','#9bf6ff','#a0c4ff','#bdb2ff','#fffffc','#ffffff','#333333','#aaaaaa','#222222','#000000'],
+    "7": ['transparent','#ff0000','#cc0000','#990000','#660000','#330000','#ff8888','#ffcccc','#ffffff','#eeeeee','#cccccc','#999999','#666666','#333333','#111111','#000000'],
+    "8": ['transparent','#00ff00','#ff00ff','#00ffff','#ffff00','#ff0000','#ffffff','#003300','#330033','#003333','#330033','#330000','#444444','#888888','#222222','#000000'],
+    "9": ['transparent','#2d5a27','#1e3f1a','#4a7c44','#6b8e23','#8fbc8f','#556b2f','#a2ad91','#deb887','#8b4513','#5d4037','#ffffff','#cccccc','#444444','#222222','#000000'],
+    "a": ['transparent','#0077be','#005b96','#03396c','#011f4b','#6497b1','#b3cde0','#009688','#4db6ac','#80cbc4','#ffffff','#dddddd','#aaaaaa','#333333','#111111','#000000'],
+    "b": ['transparent','#ff4500','#ff6347','#ff8c00','#ffa500','#ffd700','#2f4f4f','#708090','#191970','#000080','#483d8b','#ffffff','#aaaaaa','#333333','#111111','#000000'],
+    "c": ['transparent','#9bbc0f','#8bab0f','#306230','#0f380f','#ffffff','#dddddd','#bbbbbb','#999999','#777777','#555555','#333333','#111111','#050505','#222222','#000000'],
+    "d": ['transparent','#a63d33','#e0815e','#6b4a3e','#f2e8d5','#bfbd97','#8c9e5e','#5e6146','#3e4a3d','#2b3a2d','#1a201a','#ffffff','#cccccc','#888888','#222222','#000000'],
+    "e": ['transparent','#5d001e','#9a1750','#ee4c7c','#ff66aa','#cc3366','#990033','#ffcccc','#ff99cc','#ffffff','#eeeeee','#cccccc','#999999','#444444','#222222','#000000'],
+    "f": ['transparent','#ff0000','#00ff00','#0000ff','#ffff00','#ff00ff','#00ffff','#ffffff','#808080','#800000','#008000','#000080','#808000','#800080','#444444','#000000']
+};
+
+let currentSpeed = 2;
+let endingSpeed = 0.5;
+let isEnding = false;
+const ART_WIDTH = 80;
+const MARGIN = 50;
+
+let activeArts = [];
+let pendingArts = [];
+let starArts = [];
+
+let bannedUsers = new Set();
+let currentY = 10;
+const userContainers = {};
+
+const END_COLUMNS = 6;
+const END_COL_WIDTH = 140;
+const END_ROW_HEIGHT = 150;
+
+const params = new URLSearchParams(window.location.search);
+const channel = params.get('channel');
+if (channel) ComfyJS.Init(channel);
+
+/**
+ * v2形式デコーダー（ヘッダーレス r/b形式）
+ * フォーマット: !miv2 r[Base64] または !miv2 b[Base64]
+ */
+function renderV2Code(code) {
+    try {
+        const base64 = code.replace("!miv2 ", "").trim();
         
-        let activeArts = []; // 現在画面上を移動している絵
-        let pendingArts = []; // エンディング中、次の一周まで待機する絵
-        let starArts = []; // !star演出用の独立配列
+        // 識別子チェック
+        const identifier = base64[0];
+        const bodyBase64 = base64.substring(1);
         
-        let bannedUsers = new Set();
-        let currentY = 10; 
-        const userContainers = {};
-
-        // エンディング設定
-        const END_COLUMNS = 6;
-        const END_COL_WIDTH = 140;
-        const END_ROW_HEIGHT = 150;
-
-        const params = new URLSearchParams(window.location.search);
-        const channel = params.get('channel');
-        if (channel) ComfyJS.Init(channel);
-
-        ComfyJS.onCommand = (user, command, message, flags, extra) => {
-            const userId = user.toLowerCase();
-            if (bannedUsers.has(userId)) return;
-
-           if ((command === "draw" || command === "mirodot" || command === "mirodot_v2")) {
-                // コマンド自体がデータ（!mirodot_v2...）である可能性を考慮
-                const fullData = command === "mirodot_v2" ? ("!mirodot_v2 " + message).trim() : message;
+        if (identifier !== 'r' && identifier !== 'b') {
+            console.error('不正な識別子:', identifier);
+            return null;
+        }
         
-                if (!fullData) return;
-
-                const newArt = createArt(user, fullData);
-                newArt.bottom = currentY;
-                newArt.el.style.bottom = currentY + 'px';
-
-                if (isEnding) {
-                    const lastArt = activeArts[activeArts.length - 1];
-                    // 最後尾の絵が画面の下端より50px以上下にあるかチェック
-                    const isTailOffscreen = !lastArt || lastArt.bottom < -50;
-
-                    if (isTailOffscreen) {
-                        // 今のロールにまだ空きがあれば、最後尾に追加して即座に流す
-                        activeArts.push(newArt);
-                        const index = activeArts.length - 1;
-                        const col = index % END_COLUMNS;
-                        const row = Math.floor(index / END_COLUMNS);
-                        
-                        newArt.left = col * END_COL_WIDTH + 10;
-                        newArt.el.style.left = newArt.left + 'px';
-                        
-                        // 同じ行の高さに合わせる
-                        const sameRowRef = activeArts.find((art, idx) => idx < index && Math.floor(idx / END_COLUMNS) === row);
-                        if (sameRowRef) {
-                            newArt.bottom = sameRowRef.bottom;
-                        } else {
-                            newArt.bottom = lastArt ? lastArt.bottom - END_ROW_HEIGHT : -END_ROW_HEIGHT;
-                        }
-                        newArt.el.style.bottom = newArt.bottom + 'px';
-                        newArt.grid.classList.remove('jump');
-                    } else {
-                        // 最後尾が既に見えているなら、いきなり出さないよう次の一周まで待機
-                        newArt.el.style.display = 'none';
-                        pendingArts.push(newArt);
-                    }
-                } else {
-                    // 通常パレード：最後尾（または出現位置）に差し込む
-                    let displayCount = 0;
-                    activeArts.forEach(art => { if (art.left > -130) displayCount++; });
-                    activeArts.splice(displayCount, 0, newArt);
-                }
+        // Base64デコード
+        const body = Array.from(atob(bodyBase64)).map(c => c.charCodeAt(0));
+        
+        // ヘッダーを固定値で補完
+        const setId = 0; // デフォルト「基本」パレット
+        const paletteType = 0; // 標準参照
+        const type = (identifier === 'r') ? 2 : 3; // r=RLE, b=Base64ニブル
+        
+        // 標準パレットを使用
+        const palKeys = Object.keys(PALETTES);
+        const key = palKeys[setId] || "基本";
+        const palette = [...PALETTES[key]];
+        
+        // ピクセルデコード
+        let pixels = [];
+        
+        if (type === 2) {
+            // RLE圧縮デコード
+            for (let i = 0; i < body.length; i += 2) {
+                const color = body[i];
+                const count = (i + 1 < body.length) ? body[i + 1] : 1;
+                for (let j = 0; j < count; j++) pixels.push(color);
             }
-
-            const effects = ["shake", "jump", "dance", "sparkle", "bomb"];
-            if (effects.includes(command)) { applyEffect(userId, command); }
-
-            if (flags.broadcaster || flags.mod) {
-                if (command === "end") startEndingMode();
-                if (command === "notend") stopEndingMode();
-                if (command === "head") { currentY = 360; isEnding = false; stopEndingMode(); }
-                if (command === "foot") { currentY = 10; isEnding = false; stopEndingMode(); }
-                
-                if (command === "star") {
-                    activeArts.forEach(art => {
-                        const cloneEl = art.el.cloneNode(true);
-                        cloneEl.classList.add('star-container');
-                        document.getElementById('stage').appendChild(cloneEl);
-                        starArts.push({
-                            el: cloneEl,
-                            left: -ART_WIDTH - Math.random() * 800,
-                            bottom: Math.floor(Math.random() * 400)
-                        });
-                    });
-                }
-
-                const target = message ? message.replace('@', '').toLowerCase() : "";
-                if (command === "picclear") removeUserArts(target);
-                if (command === "picban" && target) { bannedUsers.add(target); removeUserArts(target); }
-                if (command === "speed") {
-                    const s = parseFloat(message);
-                    if (s > 0) currentSpeed = s / 10;
-                }
+        } else if (type === 3) {
+            // Base64ニブル形式
+            for (let i = 0; i < body.length; i++) {
+                const byte = body[i];
+                const pixel1 = (byte >> 4) & 0xF;
+                const pixel2 = byte & 0xF;
+                pixels.push(pixel1);
+                if (pixels.length < 256) pixels.push(pixel2);
             }
-        };
-
-        function startEndingMode() {
-            isEnding = true;
-            // 一周リセットのタイミングで待機リストを合流
-            if (pendingArts.length > 0) {
-                pendingArts.forEach(art => {
-                    art.el.style.display = 'flex';
-                    activeArts.push(art);
-                });
-                pendingArts = [];
-            }
-
-            activeArts.forEach((art, index) => {
-                const col = index % END_COLUMNS;
-                const row = Math.floor(index / END_COLUMNS);
-                art.left = col * END_COL_WIDTH + 10; 
-                art.el.style.left = art.left + 'px';
-                art.bottom = -(END_ROW_HEIGHT + (row * END_ROW_HEIGHT)); 
-                art.el.style.bottom = art.bottom + 'px';
-                art.grid.classList.remove('jump');
-            });
         }
-
-        function stopEndingMode() {
-            isEnding = false;
-            activeArts.forEach((art, index) => {
-                art.left = -(ART_WIDTH + MARGIN) * (index + 1);
-                art.bottom = currentY; 
-                art.el.style.left = art.left + 'px';
-                art.el.style.bottom = art.bottom + 'px';
-                if (art.isFirstLoop) art.grid.classList.add('jump');
-            });
-        }
-
-function createArt(user, data) {
-    if (data.startsWith("!mirodot_v2 ")) {
-        const decoded = renderV2Code(data); // show.jsの関数を呼び出し
-        console.log("test")
-        if (decoded) {
-            return buildArtElement(user, decoded.pixels, decoded.palette);
-        }
-    } else {
-    const userId = user.toLowerCase();
-    const palKey = data[0].toUpperCase(); // G判定のため大文字で取得
-    let colors = [];
-    let pixelData = "";
-    let isRawMode = false;
-
-    // --- 1. データ解析（Gかそれ以外か） ---
-    if (palKey === 'G') {
-        // パレットG (完全データ形式): G + カラー96文字 + ピクセル256文字
-        isRawMode = true;
-        const colorPart = data.substring(1, 97); // 16色分のRRGGBB
-        pixelData = data.substring(97);           // 256文字のドットデータ
         
-        // カラーコードを配列に変換
-        for (let i = 0; i < 16; i++) {
-            colors.push("#" + colorPart.substring(i * 6, i * 6 + 6));
-        }
-    } else {
-        // 既存の圧縮形式 (0-fパレット)
-        colors = PALETTES[data[0].toLowerCase()] || PALETTES["0"];
-        pixelData = data.substring(1);
+        return { pixels, palette };
+    } catch (e) {
+        console.error('v2デコードエラー:', e);
+        return null;
     }
+}
 
-    // --- 2. HTML要素の作成 ---
-    const container = document.createElement('div');
-    container.className = 'art-container';
-    const grid = document.createElement('div');
-    grid.className = 'pixel-grid jump';
-
-    // --- 3. ピクセル描画（デコード） ---
-    if (isRawMode) {
-        // パレットG用の描画 (1文字 = 1ピクセル / 圧縮なし)
-        for (let i = 0; i < 256; i++) {
-            const colorIdx = parseInt(pixelData[i], 16);
-            const px = document.createElement('div');
-            px.className = 'px';
-            // 0番は常に「透明」として扱う
-            px.style.backgroundColor = (colorIdx === 0) ? 'transparent' : colors[colorIdx];
-            grid.appendChild(px);
+/**
+ * 旧G形式デコーダー（互換性維持）
+ * フォーマット: !mirodot G[96文字カラー][256文字ピクセル]
+ */
+function renderLegacyGCode(data) {
+    try {
+        const colorPart = data.substring(1, 97);
+        const pixelData = data.substring(97);
+        
+        let colors = [];
+        for (let i = 0; i < 16; i++) {
+            const hex = colorPart.substring(i * 6, i * 6 + 6);
+            colors.push(i === 0 ? 'transparent' : `#${hex}`);
         }
-    } else {
-        // 既存のランレングス圧縮デコード
+        
+        let pixels = [];
+        for (let i = 0; i < 256; i++) {
+            pixels.push(parseInt(pixelData[i], 16));
+        }
+        
+        return { pixels, palette: colors };
+    } catch (e) {
+        console.error('旧G形式デコードエラー:', e);
+        return null;
+    }
+}
+
+/**
+ * 旧圧縮形式デコーダー（0-fパレット）
+ */
+function renderLegacyCompressedCode(data) {
+    try {
+        const palKey = data[0].toLowerCase();
+        const colors = LEGACY_PALETTES[palKey] || LEGACY_PALETTES["0"];
+        const pixelData = data.substring(1);
+        
+        let pixels = [];
         let pCount = 0;
         for (let i = 0; i < pixelData.length; i += 2) {
             const colorIdx = parseInt(pixelData[i], 16);
             const repeat = parseInt(pixelData[i + 1], 16);
             for (let r = 0; r < repeat; r++) {
                 if (pCount < 256) {
-                    const px = document.createElement('div');
-                    px.className = 'px';
-                    px.style.backgroundColor = colors[colorIdx] || 'transparent';
-                    grid.appendChild(px);
+                    pixels.push(colorIdx);
                     pCount++;
                 }
             }
         }
+        
+        return { pixels, palette: colors };
+    } catch (e) {
+        console.error('旧圧縮形式デコードエラー:', e);
+        return null;
     }
-  }
-// --- 4. 共通処理（名前タグなど） ---
+}
+
+/**
+ * HTML要素を組み立てる
+ */
+function buildArtElement(user, pixels, palette) {
+    const container = document.createElement('div');
+    container.className = 'art-container';
+    const grid = document.createElement('div');
+    grid.className = 'pixel-grid jump';
+
+    pixels.forEach(colorIdx => {
+        const px = document.createElement('div');
+        px.className = 'px';
+        px.style.backgroundColor = palette[colorIdx] || 'transparent';
+        grid.appendChild(px);
+    });
+
     const nameTag = document.createElement('div');
     nameTag.className = 'user-name';
     nameTag.innerText = user;
@@ -304,88 +279,242 @@ function createArt(user, data) {
     const artObj = {
         el: container,
         grid: grid,
-        user: userId,
+        user: user.toLowerCase(),
         left: -(ART_WIDTH + MARGIN),
         bottom: currentY,
         isFirstLoop: true
     };
 
-if (!userContainers[userId]) userContainers[userId] = [];
+    const userId = user.toLowerCase();
+    if (!userContainers[userId]) userContainers[userId] = [];
     userContainers[userId].push(artObj);
     
     return artObj;
 }
 
-        function update() {
-            if (!isEnding) {
-                for (let i = 0; i < activeArts.length; i++) {
-                    const art = activeArts[i];
-                    let canMove = (i === 0) || (activeArts[i-1].left > art.left + ART_WIDTH + MARGIN);
-                    if (canMove) {
-                        art.left += currentSpeed;
-                        art.el.style.left = art.left + 'px';
-                    }
+/**
+ * アート作成（全形式対応）
+ */
+function createArt(user, message) {
+    const userId = user.toLowerCase();
+    let result = null;
+    
+    // フォーマット自動判定（優先順位が重要）
+    // 1. Gで始まる → 旧G形式（Base64判定より優先）
+    // 2. Base64形式（長い英数字のみ）→ v2形式
+    // 3. その他 → 旧圧縮形式
+    
+    if (message[0] && message[0].toUpperCase() === 'G') {
+        // 旧G形式
+        result = renderLegacyGCode(message);
+    }
+    else if (message.length > 20 && message.match(/^[A-Za-z0-9+/]+=*$/)) {
+        // v2形式（Base64）
+        result = renderV2Code("!miv2 " + message);
+    }
+    else {
+        // 旧圧縮形式
+        result = renderLegacyCompressedCode(message);
+    }
+    
+    if (!result || !result.pixels || result.pixels.length !== 256) {
+        console.error('デコード失敗:', message.substring(0, 50));
+        return null;
+    }
+    
+    return buildArtElement(user, result.pixels, result.palette);
+}
+
+// ComfyJSコマンドハンドラー
+ComfyJS.onCommand = (user, command, message, flags, extra) => {
+    const userId = user.toLowerCase();
+    if (bannedUsers.has(userId)) return;
+
+    // コマンド別の処理
+    // - miv2: v2形式（新形式 - Base64のみ）
+    // - mirodot: 旧G形式（G + 96文字カラー + 256文字ピクセル）
+    // - draw: 旧圧縮形式（16進数RLE）
+    
+    let newArt = null;
+    
+    if (command === "miv2" && message) {
+        // v2形式: メッセージはBase64のみ（!miv2は除かれている）
+        newArt = createArt(user, message);
+    } else if (command === "mirodot" && message) {
+        // 旧G形式: メッセージは "G[カラー96文字][ピクセル256文字]"
+        newArt = createArt(user, message);
+    } else if (command === "draw" && message) {
+        // 旧圧縮形式: メッセージは "[パレットID][16進数RLE]"
+        newArt = createArt(user, message);
+    }
+    
+    if (newArt) {
+        newArt.bottom = currentY;
+        newArt.el.style.bottom = currentY + 'px';
+
+        if (isEnding) {
+            const lastArt = activeArts[activeArts.length - 1];
+            const isTailOffscreen = !lastArt || lastArt.bottom < -50;
+
+            if (isTailOffscreen) {
+                activeArts.push(newArt);
+                const index = activeArts.length - 1;
+                const col = index % END_COLUMNS;
+                const row = Math.floor(index / END_COLUMNS);
+                
+                newArt.left = col * END_COL_WIDTH + 10;
+                newArt.el.style.left = newArt.left + 'px';
+                
+                const sameRowRef = activeArts.find((art, idx) => idx < index && Math.floor(idx / END_COLUMNS) === row);
+                if (sameRowRef) {
+                    newArt.bottom = sameRowRef.bottom;
+                } else {
+                    newArt.bottom = lastArt ? lastArt.bottom - END_ROW_HEIGHT : -END_ROW_HEIGHT;
                 }
-                if (activeArts.length > 0 && activeArts[0].left > 852) {
-                    const finishedArt = activeArts.shift();
-                    finishedArt.isFirstLoop = false;
-                    finishedArt.grid.classList.remove('jump');
-                    finishedArt.left = -(ART_WIDTH + MARGIN);
-                    finishedArt.el.style.left = finishedArt.left + 'px';
-                    activeArts.push(finishedArt);
-                }
+                newArt.el.style.bottom = newArt.bottom + 'px';
+                newArt.grid.classList.remove('jump');
             } else {
-                // エンディング移動と無限ループ
-                activeArts.forEach(art => {
-                    art.bottom += endingSpeed;
-                    art.el.style.bottom = art.bottom + 'px';
-                });
-
-                if (activeArts.length > 0) {
-                    const lastArt = activeArts[activeArts.length - 1];
-                    // 全員が画面上端を抜けたら再配置してリセット（合流も行う）
-                    if (lastArt.bottom > 480 + 50) { 
-                        startEndingMode(); 
-                    }
-                }
+                newArt.el.style.display = 'none';
+                pendingArts.push(newArt);
             }
-
-            // !star 更新
-            for (let i = starArts.length - 1; i >= 0; i--) {
-                const s = starArts[i];
-                s.left += (currentSpeed * 4);
-                s.el.style.left = s.left + 'px';
-                s.el.style.bottom = s.bottom + 'px';
-                if (s.left > 852) {
-                    s.el.remove();
-                    starArts.splice(i, 1);
-                }
-            }
-
-            requestAnimationFrame(update);
+        } else {
+            let displayCount = 0;
+            activeArts.forEach(art => { if (art.left > -130) displayCount++; });
+            activeArts.splice(displayCount, 0, newArt);
         }
-        update();
+    }
 
-        function applyEffect(userId, effect) {
-            if (userContainers[userId]) {
-                userContainers[userId].forEach(artObj => {
-                    const grid = artObj.el.querySelector('.pixel-grid');
-                    grid.classList.add(effect);
-                    setTimeout(() => { grid.classList.remove(effect); }, 5000);
-                });
-            }
+    const effects = ["shake", "jump", "dance", "sparkle", "bomb"];
+    if (effects.includes(command)) { applyEffect(userId, command); }
+
+    if (flags.broadcaster || flags.mod) {
+        if (command === "end") startEndingMode();
+        if (command === "notend") stopEndingMode();
+        if (command === "head") { currentY = 360; isEnding = false; stopEndingMode(); }
+        if (command === "foot") { currentY = 10; isEnding = false; stopEndingMode(); }
+        
+        if (command === "star") {
+            activeArts.forEach(art => {
+                const cloneEl = art.el.cloneNode(true);
+                cloneEl.classList.add('star-container');
+                document.getElementById('stage').appendChild(cloneEl);
+                const cloneObj = {
+                    el: cloneEl,
+                    left: art.left,
+                    bottom: art.bottom,
+                    user: art.user
+                };
+                starArts.push(cloneObj);
+            });
         }
 
-        function removeUserArts(userId) {
-            if (userContainers[userId]) {
-                userContainers[userId].forEach(artObj => {
-                    artObj.el.remove();
-                    activeArts = activeArts.filter(a => a !== artObj);
-                    pendingArts = pendingArts.filter(a => a !== artObj);
-                });
-                delete userContainers[userId];
+        if (command === "ban" && message) {
+            const targetUser = message.toLowerCase();
+            bannedUsers.add(targetUser);
+            removeUserArts(targetUser);
+        }
+
+        if (command === "unban" && message) {
+            bannedUsers.delete(message.toLowerCase());
+        }
+    }
+};
+
+function startEndingMode() {
+    isEnding = true;
+    
+    const merged = [...activeArts, ...pendingArts];
+    pendingArts = [];
+    activeArts = merged;
+
+    activeArts.forEach((art, index) => {
+        const col = index % END_COLUMNS;
+        const row = Math.floor(index / END_COLUMNS);
+        art.left = col * END_COL_WIDTH + 10;
+        art.bottom = -row * END_ROW_HEIGHT;
+        art.el.style.left = art.left + 'px';
+        art.el.style.bottom = art.bottom + 'px';
+        art.el.style.display = 'flex';
+        art.grid.classList.remove('jump');
+    });
+}
+
+function stopEndingMode() {
+    isEnding = false;
+    activeArts.forEach((art, index) => {
+        art.left = -(ART_WIDTH + MARGIN) * (index + 1);
+        art.bottom = currentY;
+        art.el.style.left = art.left + 'px';
+        art.el.style.bottom = art.bottom + 'px';
+        if (art.isFirstLoop) art.grid.classList.add('jump');
+    });
+}
+
+function update() {
+    if (!isEnding) {
+        for (let i = 0; i < activeArts.length; i++) {
+            const art = activeArts[i];
+            let canMove = (i === 0) || (activeArts[i-1].left > art.left + ART_WIDTH + MARGIN);
+            if (canMove) {
+                art.left += currentSpeed;
+                art.el.style.left = art.left + 'px';
             }
         }
-    </script>
-<script src="show.js"></script>
-</body></html>
+        if (activeArts.length > 0 && activeArts[0].left > 852) {
+            const finishedArt = activeArts.shift();
+            finishedArt.isFirstLoop = false;
+            finishedArt.grid.classList.remove('jump');
+            finishedArt.left = -(ART_WIDTH + MARGIN);
+            finishedArt.el.style.left = finishedArt.left + 'px';
+            activeArts.push(finishedArt);
+        }
+    } else {
+        activeArts.forEach(art => {
+            art.bottom += endingSpeed;
+            art.el.style.bottom = art.bottom + 'px';
+        });
+
+        if (activeArts.length > 0) {
+            const lastArt = activeArts[activeArts.length - 1];
+            if (lastArt.bottom > 480 + 50) {
+                startEndingMode();
+            }
+        }
+    }
+
+    for (let i = starArts.length - 1; i >= 0; i--) {
+        const s = starArts[i];
+        s.left += (currentSpeed * 4);
+        s.el.style.left = s.left + 'px';
+        s.el.style.bottom = s.bottom + 'px';
+        if (s.left > 852) {
+            s.el.remove();
+            starArts.splice(i, 1);
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+update();
+
+function applyEffect(userId, effect) {
+    if (userContainers[userId]) {
+        userContainers[userId].forEach(artObj => {
+            const grid = artObj.el.querySelector('.pixel-grid');
+            grid.classList.add(effect);
+            setTimeout(() => { grid.classList.remove(effect); }, 5000);
+        });
+    }
+}
+
+function removeUserArts(userId) {
+    if (userContainers[userId]) {
+        userContainers[userId].forEach(artObj => {
+            artObj.el.remove();
+            activeArts = activeArts.filter(a => a !== artObj);
+            pendingArts = pendingArts.filter(a => a !== artObj);
+        });
+        delete userContainers[userId];
+    }
+}
+</script>
