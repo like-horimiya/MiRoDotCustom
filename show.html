@@ -293,32 +293,32 @@ function buildArtElement(user, pixels, palette) {
 }
 
 /**
- * アート作成（全形式対応）
+ * アート作成（コマンド別フォーマット処理）
  */
-function createArt(user, message) {
+function createArt(user, message, command) {
     const userId = user.toLowerCase();
     let result = null;
     
-    // フォーマット自動判定（優先順位が重要）
-    // 1. Gで始まる → 旧G形式（Base64判定より優先）
-    // 2. Base64形式（長い英数字のみ）→ v2形式
-    // 3. その他 → 旧圧縮形式
-    
-    if (message[0] && message[0].toUpperCase() === 'G') {
+    // コマンドに応じてフォーマットを判定
+    if (command === "miv2") {
+        // v2形式（r/b識別子）
+        result = renderV2Code("!miv2 " + message);
+    }
+    else if (command === "mirodot") {
         // 旧G形式
         result = renderLegacyGCode(message);
     }
-    else if (message.length > 20 && message.match(/^[A-Za-z0-9+/]+=*$/)) {
-        // v2形式（Base64）
-        result = renderV2Code("!miv2 " + message);
+    else if (command === "draw") {
+        // 旧圧縮形式（16進数RLE）
+        result = renderLegacyCompressedCode(message);
     }
     else {
-        // 旧圧縮形式
-        result = renderLegacyCompressedCode(message);
+        console.error('未知のコマンド:', command);
+        return null;
     }
     
     if (!result || !result.pixels || result.pixels.length !== 256) {
-        console.error('デコード失敗:', message.substring(0, 50));
+        console.error('デコード失敗:', command, message.substring(0, 50));
         return null;
     }
     
@@ -339,13 +339,13 @@ ComfyJS.onCommand = (user, command, message, flags, extra) => {
     
     if (command === "miv2" && message) {
         // v2形式: メッセージはBase64のみ（!miv2は除かれている）
-        newArt = createArt(user, message);
+        newArt = createArt(user, message, "miv2");
     } else if (command === "mirodot" && message) {
         // 旧G形式: メッセージは "G[カラー96文字][ピクセル256文字]"
-        newArt = createArt(user, message);
+        newArt = createArt(user, message, "mirodot");
     } else if (command === "draw" && message) {
         // 旧圧縮形式: メッセージは "[パレットID][16進数RLE]"
-        newArt = createArt(user, message);
+        newArt = createArt(user, message, "draw");
     }
     
     if (newArt) {
